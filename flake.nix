@@ -19,10 +19,21 @@
       pkgs = import nixpkgs { inherit system; };
       fenixLib = fenix.packages.${system};
       rustToolchain = fenixLib.stable.toolchain;
+
     in
     {
       devShells.default = pkgs.mkShell {
-        packages = with pkgs; [ rustToolchain nil ];
+        packages = with pkgs; [
+          rustToolchain
+          wgsl-analyzer
+          nil
+        ];
+
+        env.LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
+          wayland
+          libxkbcommon
+          vulkan-loader
+        ];
       };
     });
 }
