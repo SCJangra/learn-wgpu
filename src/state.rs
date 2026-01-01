@@ -10,6 +10,7 @@ pub struct State {
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
+    render_pipeline: wgpu::RenderPipeline,
     pub window: Arc<Window>,
 }
 
@@ -63,11 +64,45 @@ impl State {
             desired_maximum_frame_latency: 2,
         };
 
+        let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
+        let render_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("The render pipeline layout"),
+                ..Default::default()
+            });
+
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("The render pipeline"),
+            layout: Some(&render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &[],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: None,
+            cache: None,
+        });
+
         Ok(Self {
             surface,
             device,
             queue,
             config,
+            render_pipeline,
             is_surface_configured: false,
             window,
         })
@@ -102,15 +137,15 @@ impl State {
             });
 
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
+                            r: 0.3,
+                            g: 0.3,
                             b: 0.3,
                             a: 1.0,
                         }),
@@ -123,6 +158,9 @@ impl State {
                 timestamp_writes: None,
                 multiview_mask: None,
             });
+
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.draw(0..3, 0..1);
         }
 
         // submit will accept anything that implements IntoIter

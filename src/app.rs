@@ -18,7 +18,7 @@ impl App {
 
 impl ApplicationHandler<State> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let attributes = Window::default_attributes();
+        let attributes = Window::default_attributes().with_title("Float");
         let window = event_loop
             .create_window(attributes)
             .expect("window creation succeeds");
